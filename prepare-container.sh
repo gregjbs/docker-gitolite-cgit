@@ -23,7 +23,7 @@ echo "Starting sshd"
 
 # Permissions du volume pour les repos
 echo "Setting up permissions"
-chown -R gitosis:gitosis /home/gitosis
+chown -R git:git /home/git
 
 # Authentification par htaccess. Récupérer de docker-cgit/scripts
 echo "Enables Apache htaccess if needed"

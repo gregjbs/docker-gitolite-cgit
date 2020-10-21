@@ -12,6 +12,7 @@ WORKDIR /root
 RUN apk update && apk add git openssh  
 RUN apk add gcc make libressl-dev 
 RUN apk add python3 py3-pygments
+RUN apk add py3-markdown
 RUN apk add linux-headers 
 RUN ln -sf /usr/include/linux/unistd.h /usr/include/
 RUN apk add musl-dev
@@ -36,7 +37,7 @@ WORKDIR /usr/local/apache2
 # cgit config
 ENV HTTP_AUTH_USER="", HTTP_AUTH_PASSWORD=""
 ADD httpd.conf /usr/local/apache2/conf/httpd.conf
-RUN ln -s /home/gitosis/cgitrc /etc/cgitrc
+RUN ln -s /home/git/cgitrc /etc/cgitrc
 
 # Pre-launch script
 ADD prepare-container.sh /usr/local/bin
@@ -46,12 +47,12 @@ RUN chmod +x /usr/local/bin/prepare-container.sh
 RUN rm -rf /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_dsa_key
 
 # Gitolis / Gitolite
-RUN adduser -D gitosis
-RUN ln -s /home/gitosis/repositories/gitosis-admin.git/gitosis.conf /home/gitosis/.gitosis.conf
+RUN adduser -D -g "" -s "/sbin/nologin" git
+RUN ln -s /home/git/repositories/gitosis-admin.git/gitosis.conf /home/git/.gitosis.conf
 
-# Pour passer sur l'user gitosis
-#USER gitosis
-#WORKDIR /home/gitosis
+# Pour passer sur l'user git
+#USER git
+#WORKDIR /home/git
 
 # Ports
 EXPOSE 80
