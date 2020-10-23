@@ -25,6 +25,7 @@ RUN apk add vim
 RUN rm  -rf /tmp/* /var/cache/apk/*
 
 # cgit install
+WORKDIR /root
 RUN git clone git://git.zx2c4.com/cgit
 WORKDIR cgit
 RUN git submodule init 
@@ -32,27 +33,37 @@ RUN git submodule update
 RUN make install NO_LUA=1 NO_REGEX=NeedsStartEnd
 WORKDIR ../
 RUN rm -Rf cgit
-WORKDIR /usr/local/apache2
 
 # cgit config
 ENV HTTP_AUTH_USER="", HTTP_AUTH_PASSWORD=""
 ADD httpd.conf /usr/local/apache2/conf/httpd.conf
+ADD cgitrc /home/git/cgitrc
 RUN ln -s /home/git/cgitrc /etc/cgitrc
+
+# Gitolite install
+RUN git clone https://github.com/sitaramc/gitolite
+RUN gitolite/install -to /usr/local/bin/
+
+# Default work dir for base image httpd
+WORKDIR /usr/local/apache2
 
 # Pre-launch script
 ADD prepare-container.sh /usr/local/bin
 RUN chmod +x /usr/local/bin/prepare-container.sh
 
+# SSHD config : no password, no strict mode
+ADD sshd_config /etc/ssh/sshd_config
+
 # Remove SSH keyes, fresh keys will be generated at container startup by prepare-container.sh
 RUN rm -rf /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_dsa_key
 
 # Gitolis / Gitolite
-RUN adduser -D -g "" -s "/sbin/nologin" git
-RUN ln -s /home/git/repositories/gitosis-admin.git/gitosis.conf /home/git/.gitosis.conf
+RUN adduser -D -g "" -s "/bin/ash" git
+# We need a password set, otherwise pubkey auth doesn't work... why ?? /sbin/nologin doesn't work either
+RUN echo "git:zkndfghUTG56hy89d4874d@!dad#" | chpasswd
 
-# Pour passer sur l'user git
-#USER git
-#WORKDIR /home/git
+# Volume for /home/git
+VOLUME ["/home/git"]
 
 # Ports
 EXPOSE 80
