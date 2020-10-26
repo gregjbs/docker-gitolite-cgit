@@ -10,13 +10,36 @@ Pour construire l'image :
 
     $ docker build -t gitosis-cds:v31 .
 
-Si on souhaite utiliser cette image en dehors du NAS : 
+Si on souhaite utiliser cette image en dehors de l'interface graphique Docker du NAS : 
 
-    $ docker run --name git-test -dit -p 8880:80 -p 2222:22 --volume /opt/gitosis-home:/home/gitosis  gitosis-cds:latest
+Avec un bindmount :
+    $ docker run --name git-test -dit -p 8880:80 -p 2222:22 --volume /opt/git-home-on-host:/home/git  gitolite-cgit-cds:latest
     
-Pour rentrer dans le conteneur une fois lancé :
+Avec un volume interne Docker (option par défaut) : 
+    $ docker run --name git-test -dit -p 8880:80 -p 2222:22 gitolite-cgit-cds:latest
+
+Pour rentrer dans le conteneur :
 
     $ docker exec -ti git-test sh
+   
+
+## Relancer un nouveau conteneur avec les données déjà existantes
+
+Pour un volume interne Docker anonyme après avoir récupérer son nom par `docker volume ls` :
+
+    $ sudo docker run --name git-test -dit -p 8880:80 -p 2222:22 -v 23bbae1624415494ddb345ad13777f7de3a248ac57fd84e6e24c5083f9835deb:/home/git gitolite-cgit-cds:v07
+    
+    
+## Configurer Gitolite au premier lancement
+
+A l'intérieur de conteneur :
+
+    $ docker exec -ti git-test sh
+    $ gitolite setup -pk /tmp/admin.pub (la clé publique de l'administrateur doit avoir été préalablement envoyée dans le conteneur)
+    $ chmod -R 755 repositories/
+    
+
+
 
 ## Voir aussi
 
