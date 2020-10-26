@@ -21,6 +21,11 @@ fi
 echo "Starting sshd"
 /usr/sbin/sshd
 
+# Si le fichier cgitrc n'est pas présent, on le copie depuis /etc/cgitrc.default. Cela arrive en cas de bindmount sur /home/git
+if [ ! -f "/home/git/cgitrc" ]; then
+	cp /etc/cgitrc.default /home/git/cgitrc
+fi
+
 # Permissions du volume pour les repos
 echo "Setting up permissions"
 chown -R git:git /home/git

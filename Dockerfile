@@ -38,6 +38,8 @@ RUN rm -Rf cgit
 ENV HTTP_AUTH_USER="", HTTP_AUTH_PASSWORD=""
 ADD httpd.conf /usr/local/apache2/conf/httpd.conf
 ADD cgitrc /home/git/cgitrc
+# Extra copy if /home/git is bindmounted
+ADD cgitrc /etc/cgitrc.default
 RUN ln -s /home/git/cgitrc /etc/cgitrc
 
 # Gitolite install
