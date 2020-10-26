@@ -30,6 +30,23 @@ fi
 echo "Setting up permissions"
 chown -R git:git /home/git
 
+# Gitolite configuration (admin pubkey)
+if [ ! -f ~git/.ssh/authorized_keys ]; then
+  if [ -n "$SSH_KEY" ]; then
+    echo "$SSH_KEY" > "/tmp/admin.pub"
+    su - git -c "gitolite setup -pk \"/tmp/admin.pub\""
+    rm "/tmp/admin.pub"
+  else
+    echo "You need to specify SSH_KEY on first run to setup gitolite"
+    echo 'Example: docker run -e SSH_KEY="$(cat ~/.ssh/id_rsa.pub)" -e SSH_KEY_NAME="$(whoami)" jgiannuzzi/gitolite'
+    exit 1
+  fi
+# Check setup at every startup
+else
+  su - git -c "gitolite setup"
+fi
+
+
 # Authentification par htaccess. Récupérer de docker-cgit/scripts
 echo "Enables Apache htaccess if needed"
 if [ "$HTTP_AUTH_PASSWORD" != "" ]; then
