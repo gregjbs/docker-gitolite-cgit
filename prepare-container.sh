@@ -26,30 +26,33 @@ if [ ! -f "/home/git/cgitrc" ]; then
 	cp /etc/cgitrc.default /home/git/cgitrc
 fi
 
-# Permissions du volume pour les repos
-echo "Setting up permissions"
-chown -R git:git /home/git
-
 # Gitolite configuration (admin pubkey)
-if [ ! -f ~git/.ssh/authorized_keys ]; then
+if [ ! -f "/home/git/.ssh/authorized_keys" ]; then
   if [ -n "$SSH_KEY" ]; then
     echo "$SSH_KEY" > "/tmp/admin.pub"
     su - git -c "gitolite setup -pk \"/tmp/admin.pub\""
     rm "/tmp/admin.pub"
   else
     echo "You need to specify SSH_KEY on first run to setup gitolite"
-    echo 'Example: docker run -e SSH_KEY="$(cat ~/.ssh/id_rsa.pub)" -e SSH_KEY_NAME="$(whoami)" jgiannuzzi/gitolite'
+    echo 'Example: docker run --rm --name git-test -e SSH_KEY="$(cat ~/.ssh/id_rsa.pub)" -v git-data:/home/git -dit gitolite-cgit-cds:v10'
     exit 1
   fi
+  echo "First launch : container is now shut down"
+  halt
 # Check setup at every startup
 else
   su - git -c "gitolite setup"
 fi
 
+# Permissions du volume pour les repos
+echo "Setting up permissions"
+chown -R git:git /home/git
+chmod -R 755 /home/git/repositories
 
 # Authentification par htaccess. Récupérer de docker-cgit/scripts
-echo "Enables Apache htaccess if needed"
+echo "No Apache htaccess required"
 if [ "$HTTP_AUTH_PASSWORD" != "" ]; then
+    echo "Enables Apache htaccess"
     echo "AuthType Basic
 AuthName \"CGit\"
 AuthUserFile /var/www/htdocs/cgit/.htpasswd

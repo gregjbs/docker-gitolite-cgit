@@ -8,6 +8,10 @@ MAINTAINER Grégory Joubès <greg@cds.lan>
 
 WORKDIR /root
 
+# Proxy, comment if not needed
+#RUN export http_proxy=http://10.100.4.178:3128/ https_proxy=https://10.100.4.178:3128/
+ARG HTTP_PROXY
+
 # Packages 
 RUN apk update && apk add git openssh  
 RUN apk add gcc make libressl-dev 
@@ -18,18 +22,31 @@ RUN ln -sf /usr/include/linux/unistd.h /usr/include/
 RUN apk add musl-dev
 RUN apk add libintl musl-libintl
 RUN apk add zlib zlib-dev
+# to support untar tar.xz
+RUN apk add tar
 # Confort...
 RUN apk add vim
 
 # Clean up
 RUN rm  -rf /tmp/* /var/cache/apk/*
 
-# cgit install
+# cgit install (uncomment prefered method : local archive / clone)
 WORKDIR /root
-RUN git clone git://git.zx2c4.com/cgit
+# Clone
+#RUN git clone git://git.zx2c4.com/cgit
+# Local archive (3 lines)
+COPY cgit-1.2.3.tar.xz /root/cgit-1.2.3.tar.xz
+RUN tar xf cgit-1.2.3.tar.xz
+RUN mv cgit-1.2.3 cgit
+#####
 WORKDIR cgit
-RUN git submodule init 
-RUN git submodule update
+# Uncomment these 2 lines if cloning
+#RUN git submodule init 
+#RUN git submodule update
+# Uncomment these 2 line if building from local archive
+COPY git-2.25.1.tar.xz /root/cgit/git-2.25.1.tar.xz
+RUN tar -xJf git-2.25.1.tar.xz && rm -rf git && mv git-2.25.1 git
+# Building now !
 RUN make install NO_LUA=1 NO_REGEX=NeedsStartEnd
 WORKDIR ../
 RUN rm -Rf cgit
@@ -42,8 +59,15 @@ ADD cgitrc /home/git/cgitrc
 ADD cgitrc /etc/cgitrc.default
 RUN ln -s /home/git/cgitrc /etc/cgitrc
 
-# Gitolite install
-RUN git clone https://github.com/sitaramc/gitolite
+# Gitolite install (uncomment prefered method : local archive / clone)
+# Install from archive triggers a warning message about git version : just ignore it
+# Clone
+#RUN git clone https://github.com/sitaramc/gitolite
+# Local archive (3 lines)
+COPY gitolite-master.zip /root/gitolite-master.zip
+RUN unzip gitolite-master.zip
+RUN mv gitolite-master gitolite
+#####
 RUN gitolite/install -to /usr/local/bin/
 
 # Default work dir for base image httpd
@@ -77,10 +101,12 @@ EXPOSE 22
 ADD dumb-init_1.0.0_amd64 /usr/local/bin/dumb-init
 RUN chmod +x /usr/local/bin/dumb-init
 
+# Removing proxy
+#RUN export http_proxy="” https_proxy=""
+
 # Runs "/usr/bin/dumb-init -- sh -c  prepare-container.sh && exec apachectl -DFOREGROUND"
 # dumb-init gets PID 1 and handles signlas gracefully
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]
-# sh only lives to run prepare-container.sh (thanks to 'exec') 
 CMD ["sh", "-c", "prepare-container.sh && exec httpd-foreground"]
 
 # To work without dumb-init, uncomment last line in prepare-container.sh to make it usual Docker entrypoint
