@@ -6,13 +6,9 @@ Les dépôts et la configuration de gitolite et cgit sont dans le répertoire de
 
 ## Lancement
 
-Pour construire l'image :
+Pour construire l'image (ajuster ou supprimer les paramètres de proxy si besoin) :
 
-    $ docker build -t gitolite-cgit-cds:v10 .
-
-Si besoin, avec proxy :
-
-    $ docker build --build-arg HTTP_PROXY=http://10.100.4.178:3128 -t gitolite-cgit-cds:v10 .
+    $ docker build --build-arg HTTP_PROXY=http://10.100.4.178:3128  -t gitolite-cgit-cds:v21 .
 
 Si on souhaite utiliser cette image en dehors de l'interface graphique Docker du NAS : 
 
@@ -81,6 +77,11 @@ Le volume interne nommé est passé en argument lors du lancement définitif.
 La configuration est initialisée dans le volume qu'il suffit ensuite de reconncter. Et cette fois les ports doivent être renseignés :
 
     $ docker run --name git-test -dit -v git-data:/home/git -p 8880:80 -p 2222:22 gitolite-cgit-cds:v20
+    
+Les deux commandes précédentes fonctionnent également en montant un répertoire de l'hôte comme volume : 
+
+    $ docker run --rm --name git-test -dit -v /srv/git-data:/home/git -e SSH_KEY="$(cat /home/greg/.ssh/id_rsa.pub)" gitolite-cgit-cds:v20
+    $ docker run --name git-test -dit -v /srv/git-data:/home/git -p 8880:80 -p 2222:22 gitolite-cgit-cds:v20
 
 ## Lancement
 
@@ -155,5 +156,6 @@ Pour ajouter une entrée dans le fichier `~\.gitconfig`.
 * [Exemple d'image gitolite](http://github.com/sitaramc/gitolite#adding-users-and-repos)
 * [Exemple d'image cgit](https://github.com/invokr/docker-cgit)
 * [Documentation officielle Gitolite](https://gitolite.com/gitolite/basic-admin.html)
+* [Sauvegarde et restauration d'un conteneur et de ses volumes](https://docs.docker.com/storage/volumes/#backup-a-container)
 
 [docker]: https://www.docker.com/

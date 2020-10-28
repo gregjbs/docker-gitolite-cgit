@@ -9,7 +9,6 @@ MAINTAINER Grégory Joubès <greg@cds.lan>
 WORKDIR /root
 
 # Proxy, comment if not needed
-#RUN export http_proxy=http://10.100.4.178:3128/ https_proxy=https://10.100.4.178:3128/
 ARG HTTP_PROXY
 
 # Packages 
@@ -63,10 +62,9 @@ RUN ln -s /home/git/cgitrc /etc/cgitrc
 # Install from archive triggers a warning message about git version : just ignore it
 # Clone
 #RUN git clone https://github.com/sitaramc/gitolite
-# Local archive (3 lines)
-COPY gitolite-master.zip /root/gitolite-master.zip
-RUN unzip gitolite-master.zip
-RUN mv gitolite-master gitolite
+# Local archive (2 lines)
+COPY gitolite-3.6.12.tar.gz /root/gitolite-3.6.12.tar.gz
+RUN tar xf gitolite-3.6.12.tar.gz
 #####
 RUN gitolite/install -to /usr/local/bin/
 
