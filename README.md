@@ -30,6 +30,19 @@ Pour spécifier un nom de conteneur :
 Pour rentrer dans le conteneur :
 
     $ docker exec -ti git-test sh
+    
+On peut vérifier que les processus `sshd` et `httpd` tournent bien :
+
+    $ ps
+    PID   USER     TIME  COMMAND
+        1 root      0:00 /usr/local/bin/dumb-init -- sh -c prepare-container.sh && exec httpd-foreground
+        6 root      0:00 httpd -DFOREGROUND
+       13 root      0:00 sshd: /usr/sbin/sshd [listener] 0 of 10-100 startups
+       69 daemon    0:00 httpd -DFOREGROUND
+       70 daemon    0:00 httpd -DFOREGROUND
+       71 daemon    0:00 httpd -DFOREGROUND
+       72 daemon    0:00 httpd -DFOREGROUND
+       73 daemon    0:00 httpd -DFOREGROUND
    
 
 ## Relancer un nouveau conteneur avec les données déjà existantes
@@ -59,13 +72,15 @@ La sortie doit ressembler à ça :
 ### Au lancement du conteneur 
 
 On utilise le paramètre `--rm` afin de détruire le conteneur sitôt l'exécution du script d'entrée terminée (`true` est une commande qui retourne immédiatement).
-Le volume interne nommé est passé en argument. 
+Ce premier lancement va créer les clés SSH du serveur et effectuer la configuration initiale de Gitolite à partir de la clé publique fournie.
 
-    $ docker run --name git-test -dit -v git-data:/home/git -e SSH_KEY="$(cat /home/greg/.ssh/id_rsa.pub)" gitolite-cgit-cds:v10
+Le volume interne nommé est passé en argument lors du lancement définitif. 
+
+    $ docker run --rm --name git-test -dit -v git-data:/home/git -e SSH_KEY="$(cat /home/greg/.ssh/id_rsa.pub)" gitolite-cgit-cds:v20
     
 La configuration est initialisée dans le volume qu'il suffit ensuite de reconncter. Et cette fois les ports doivent être renseignés :
 
-    $ docker run --name git-test -dit -v git-data:/home/git -p 8880:80 -p 2222:22 gitolite-cgit-cds:v10
+    $ docker run --name git-test -dit -v git-data:/home/git -p 8880:80 -p 2222:22 gitolite-cgit-cds:v20
 
 ## Lancement
 
@@ -89,6 +104,40 @@ Puis on clone le dépôt de test :
 Git nous informe qu'il s'agit d'un dépôt vide, ce qui est normal. A ce stade tout fonctionne.
     
 
+## Ajout des dépôts existants
+
+Attention, cette méthode supprimer les hook d'update !
+
+1- Se connecter au conteneur
+
+2- Copier l'archive des dépôts : uniquement des bare repositories (sans copie de travail) se terminant par ".git" :
+
+    $ scp greg@172.17.0.1:/opt/vm/repos/cartman-gitosis-repo.tgz /tmp/
+
+3- Décompresser l'archive dans le répertoire des dépôts de Gitolite :
+
+    $ cd /home/git/repositories
+    $ tar -xf /tmp/cartman-gitosis-repo.tgz
+
+4- Régler les permissions :
+
+    $ chown -R git:git *
+    $ chmod -R 755 *
+    
+5- Exécuter les commandes d'admin Gitolite (voir documentation pour plus de détails)
+
+    $ su git
+    $ cd
+    $ gitolite compile
+    $ gitolite setup --hooks-only
+    $ gitolite trigger POST_COMPILE
+    
+6- Clôner le dépot d'administration Gitosis afin d'y modifier en conséquence le fichier `gitolite.conf` et ajouter les clés des utilisateurs dans `keydir`
+
+7- Commiter et pousser les changements.
+
+
+
 ## Utilisation de Gitolite 
 
 Gitolite tout comme son ancètre Gitosis identifie les utilisateurs par la clés publique qu'ils utilisent. Ces utilisateurs n'ont donc aucun rapport avec ceux connus du système. Toutes connexions vers Gitolite se feront ainsi avec l'utilisateur `git` associé à votre clé publique.
@@ -105,5 +154,6 @@ Pour ajouter une entrée dans le fichier `~\.gitconfig`.
 * [Image de base utilisée (httpd 2.4) ](https:https://hub.docker.com/_/httpd)
 * [Exemple d'image gitolite](http://github.com/sitaramc/gitolite#adding-users-and-repos)
 * [Exemple d'image cgit](https://github.com/invokr/docker-cgit)
+* [Documentation officielle Gitolite](https://gitolite.com/gitolite/basic-admin.html)
 
 [docker]: https://www.docker.com/
