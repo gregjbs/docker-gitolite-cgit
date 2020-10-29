@@ -122,6 +122,17 @@ Puis on clone le dépôt de test :
 
 Git nous informe qu'il s'agit d'un dépôt vide, ce qui est normal. A ce stade tout fonctionne.
 
+### Authentification par .htaccess
+
+Il est possible de protéger l'accès à Cgit par un couple utilisateur / mot de passe. 
+Il suffit de renseigner les variables d'environnement `HTTP_AUTH_USER` et `HTTP_AUTH_PASSWORD` dans la ligne de lancement du conteneur :
+
+    $ docker run --name git-test -dit -v git-data:/home/git -p 8880:80 -p 2222:22 -e HTTP_AUTH_USER="my_user" -e HTTP_AUTH_PASSWORD="my_password" gitolite-cgit-cds:v21
+    
+Un couple de fichier .htaccess / .htpasswd est alors généré à la création du conteneur.
+
+
+
 ### En cas de problème
 
 En cas de défaillance du conteneur, la première chose à faire est de s'y connecter et de vérifier  l'état des service `httpd` et `sshd`.
@@ -183,9 +194,15 @@ Attention, cette méthode supprimer les hook d'update !
 
 
 
-## Utilisation de Gitolite 
+## Utilisation de Gitolite & Cgit
 
 Gitolite tout comme son ancètre Gitosis identifie les utilisateurs par la clés publique qu'ils utilisent. Ces utilisateurs n'ont donc aucun rapport avec ceux connus du système. Toutes connexions vers Gitolite se feront ainsi avec l'utilisateur `git` associé à votre clé publique.
+
+- Clonage d'un dépôt
+- Ajout d'un nouveau dépôt (Gitolite + Cgit)
+- Push/Pull
+- Gestion des utilisateurs et des permissions Gitolite
+
 
 ## Configurer le proxy pour Git
 
