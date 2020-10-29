@@ -4,7 +4,7 @@
 
 FROM httpd:2.4-alpine
 
-MAINTAINER Grégory Joubès <greg@cds.lan>
+MAINTAINER Grégory Joubès <gregjbs@protonmail.com>
 
 WORKDIR /root
 
@@ -59,7 +59,6 @@ ADD cgitrc /etc/cgitrc.default
 RUN ln -s /home/git/cgitrc /etc/cgitrc
 
 # Gitolite install (uncomment prefered method : local archive / clone)
-# Install from archive triggers a warning message about git version : just ignore it
 # Clone
 #RUN git clone https://github.com/sitaramc/gitolite
 # Local archive (2 lines)
@@ -84,7 +83,7 @@ RUN rm -rf /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_dsa_key
 # Gitolis / Gitolite
 RUN adduser -D -g "" -s "/bin/ash" git
 # We need a password set, otherwise pubkey auth doesn't work... why ?? /sbin/nologin doesn't work either
-RUN echo "git:zkndfghUTG56hy89d4874d@!dad#" | chpasswd
+RUN echo "git:zkndflsi67hGT75!dad#" | chpasswd
 
 # Volume for /home/git
 VOLUME ["/home/git"]

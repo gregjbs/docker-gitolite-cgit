@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# From https://github.com/danielguerra69/alpine-sshd/blob/master/docker-entrypoint.sh
-# Comme on utilise dumb-init, ce fichier n'est plus un entrypoint, mais un simple script de préparation
+# Warning : this no standard docker entrypoint, we use dumb-init !
 
 if [ ! -f "/etc/ssh/ssh_host_rsa_key" ]; then
 	# generate fresh rsa key
@@ -21,7 +20,7 @@ fi
 echo "Starting sshd"
 /usr/sbin/sshd
 
-# Si le fichier cgitrc n'est pas présent, on le copie depuis /etc/cgitrc.default. Cela arrive en cas de bindmount sur /home/git
+# If no cgitrc, let's copy one from /etc/cgitrc.default. This happens when bindmounting /home/git
 if [ ! -f "/home/git/cgitrc" ]; then
 	cp /etc/cgitrc.default /home/git/cgitrc
 fi
@@ -44,12 +43,12 @@ else
   su - git -c "gitolite setup"
 fi
 
-# Permissions du volume pour les repos
+# Volume permissions
 echo "Setting up permissions"
 chown -R git:git /home/git
 chmod -R 755 /home/git/repositories
 
-# Authentification par htaccess. Récupérer de docker-cgit/scripts
+# htaccess/htpasswd auth (comes from docker-cgit/scripts)
 echo "No Apache htaccess required"
 if [ "$HTTP_AUTH_PASSWORD" != "" ]; then
     echo "Enables Apache htaccess"
