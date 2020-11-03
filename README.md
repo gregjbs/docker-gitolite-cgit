@@ -2,16 +2,14 @@ Image docker Gitolite/cgit
 =========================
 
 Cette image [Docker][docker] permet de gérer sur Kyle les dépôts Git anciennent sur Cartman.
-Les dépôts et la configuration de gitolite et cgit sont dans le répertoire de l'utilisateur gitosis. Ce répertoire est prévu pour être "bindé" dans le conteneur au lancement s'il est utilisé sur un NAS Synology.
+This image offers a very quick way of deploying a Gitolite / Cgit server. Gitolite is a lightweight yet powerful git manager. Cgit is web-based frontend to Git repositories.
 
-## Construction de l'image
 
-Pour construire l'image (ajuster ou supprimer les paramètres de proxy si besoin) :
+## Building container image
 
-    $ docker build --build-arg HTTP_PROXY=http://10.100.4.178:3128  -t gitolite-cgit-cds:v21 .
-    
-Les logiciels Cgit et Gitolite sont par défaut intégrer dans l'image à partir des archives sources présentes aux côtés du Dockerfile. Il est cependant possible de les clôner depuis Github pendant la construction de l'image.
-Il suffit pour cela de commenter/decommenter les lignes correspondante dans le Dockerfile. Les dernières versions des logiciels seront alors intégrées.
+Building is achieved by the common Docker way (adjust or remove proxy settings according to your needs):
+
+    $ docker build --build-arg HTTP_PROXY=http://10.100.4.178:3128  -t gitolite-cgit .
   
 
 ## Relancer un nouveau conteneur avec les données déjà existantes
@@ -160,18 +158,23 @@ On peut vérifier que les processus `sshd` et `httpd` tournent bien :
 
 ## Ajout des dépôts existants à Gitolite & Cgit
 
-Attention, cette méthode supprimer les hook d'update !
+Attention, cette méthode supprime les hook d'update !
 
 1. Se connecter au conteneur
 
 2. Copier l'archive des dépôts : uniquement des bare repositories (sans copie de travail) se terminant par ".git" :
 
     $ scp greg@172.17.0.1:/opt/vm/repos/cartman-gitosis-repo.tgz /tmp/
+    
+Une manière de procéder est de créer un utilisateur temporaire dont le fichier ~/.ssh/authorized/keys contient votre clé publique puis :
+
+    $ scp -P <port> existing-repos.tgz tmp_user@10.16.0.217:/tmp/
 
 3. Décompresser l'archive dans le répertoire des dépôts de Gitolite :
 
     $ cd /home/git/repositories
     $ tar -xf /tmp/cartman-gitosis-repo.tgz
+    $ rm /tmp/cartman-gitosis-repo.tgz
 
 4. Régler les permissions :
 
