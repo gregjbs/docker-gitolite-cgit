@@ -108,7 +108,7 @@ section=my repo
 #repo.url=testing
 #repo.path=/home/git/testing.git
 #repo.desc=Testing repo created by Gitolite
-#repo.owner=admin@cds.lan
+#repo.owner=admin@mynetwork.com
 #
 
 
