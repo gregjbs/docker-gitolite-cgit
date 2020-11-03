@@ -153,6 +153,8 @@ Cgit is configured to automatically serve every repositories located into `/home
 
     http(s)://myserver:20080
 
+You may want to custumize it (clone-prefix, favicon, headers...), just edit `/home/git/cgitrc`.
+
 
 ### Gitolite
 
