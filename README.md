@@ -1,49 +1,37 @@
 Image docker Gitolite/cgit
 =========================
 
-Cette image [Docker][docker] permet de gérer sur Kyle les dépôts Git anciennent sur Cartman.
-This image offers a very quick way of deploying a Gitolite / Cgit server. Gitolite is a lightweight yet powerful git manager. Cgit is web-based frontend to Git repositories.
-
-
-## Building container image
-
-Building is achieved by the common Docker way (adjust or remove proxy settings according to your needs):
-
-    $ docker build --build-arg HTTP_PROXY=http://10.100.4.178:3128  -t gitolite-cgit .
+This [Docker][docker] image offers a very quick way of deploying a Gitolite / Cgit server. Gitolite is a lightweight yet powerful git manager. Cgit is web-based frontend to Git repositories.
   
-
-## Relancer un nouveau conteneur avec les données déjà existantes
-
-En cas de suppression du conteneur ou de mise à jour, il suffit de le lancer avec le nom du volume contenant les données. 
     
     
-## Lancement du conteneur
+## Starting a gitolite-cgit container
     
-### Premier lancement
+### First launch
 
-Ce premier lancement va créer les clés SSH du serveur et effectuer la configuration initiale de Gitolite à partir de la clé publique fournie.
-Le conteneur est conçu pour s'arrêter lui même une fois cette configuration terminée.
-On utilise le paramètre `--rm` afin de détruire le conteneur immédiatement après son arrêt.
+This first launch will create the server RSA keypair and make Gitolite initialization. `SSH_KEY` is the Gitolite admin's public RSA key. 
+For more details about Gitolite setup, please read the [official documentation][gitolite_doc].
 
-    $ docker run --rm --name git-test -dit -v git-data:/home/git -e SSH_KEY="$(cat /home/greg/.ssh/id_rsa.pub)" gitolite-cgit-cds:v20
+The container will stop by itself once the initial configuration is done. The `--rm` will make Docker remove it automatically. Only data will remain on the volume/bindmount.
 
-Ici les données seront enregistrées dans un volume Docker interne nommé `git-data`. Ce nom peut être modifié sans incidence sur le fonctionnement.
+    $ docker run --rm -dit -v git-data:/home/git -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest
+
+Default behavion is to save data into an internal named volume,  `git-data` in this exemple. Of course you can change it if you wish.
+
+If it's suits you better you can use a bindmount. Here an exemple with `/srv/git-data`. No existing `repositories` directory must be there !  
+
+    $ docker run --rm -dit -v /srv/git-data:/home/git -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest
     
-Si on préfère utiliser un bindmount au lieu d'un volume Docker interne (ici `/srv/git-data`), le commande est la suivante. 
-Il s'agit de l'option à privilégier en cas d'utilisation sur un NAS Synology, l'IHM ne permettant pas l'utilisation des volumes Docker fin 2020.
+    
+### Troubleshooting
 
-    $ docker run --rm --name git-test -dit -v /srv/git-data:/home/git -e SSH_KEY="$(cat /home/greg/.ssh/id_rsa.pub)" gitolite-cgit-cds:v20
-    
-    
-### En cas de problème 
-    
-Si le premier lancement échoue ou si la suite de la procédure ne se déroule pas comme prévu, il peut être utile d'effectuer le premier lancement sans le paramètre `--rm`.
+If the initial startup fails, it can be usefull to repeat it one more time without the `--rm` option. 
 
-Les logs du conteneur sont alors accessibles :
+The container will remains in stoped state and its logs will be available.
 
     $ docker logs git-test
 
-La sortie doit ressembler à ça :
+A good first startup looks like this :
 
 ```sh
     Generating public/private rsa key pair.
@@ -90,57 +78,59 @@ La sortie doit ressembler à ça :
     First launch : container is now shut down
 ```
 
-## Lancement définitif 
+## Final launch 
 
-Le lancement définitif du conteneur nécéssite de renseigner les ports de l'hôte qui seront NATés aux ports 22 et 80.
-Le nom du volume interne ou le chemin du bindmount doivent bien sûr être identiques à ceux utilisés à l'étape précédente.
+You can now run the final container. It will use the previoulsy created volume `git-data`. Now we can give a name to this container and we have to NAT ports 22 et 80 to the host. Of course you may have to adapt the command line to your network.
 
-    $ docker run --name git-test -dit -v git-data:/home/git -p 8880:80 -p 2222:22 gitolite-cgit-cds:v20
+    $ docker run --name gitolite-cgit-srv -dit -v git-data:/home/git -p 20080:80 -p 20022:22 gjbs84/gitolite-cgit:lastest
     
-La commande est analogue avec un bindmount (ici `/srv/git-data`) :
+If you have chosen the bindmount way (here `/srv/git-data`) :
 
-    $ docker run --name git-test -dit -v /srv/git-data:/home/git -p 8880:80 -p 2222:22 gitolite-cgit-cds:v20
+    $ docker run --name gitolite-cgit-srv -dit -v /srv/git-data:/home/git -p 20080:80 -p 20022:22 gjbs84/gitolite-cgit:lastest
 
-Afin de tester le bon fonctionnement, on peut cloner le dépôt vide `testing` depuis la machine hôte. 
+It's now time to check if everythings is right ! Let's clone the `testing` repository.
 
-On commence par configurer son fichier `~/.ssh/config` : 
+If you are new to Gitolite you have to know that every connection to it is made by the same user, commonly `git`. A very convenient way to proceed is to add an entry in your `~/.ssh/config` : 
 
-    Host localhost
-    Port 2222
+    Host <server>
+    Port 20022
     User git
     IdentityFile ~/.ssh/id_rsa
 
-Puis on clone le dépôt de test :
+Of course you have to adapt this to your network once again.
+
+Now you can easily clone the testing repo :
 
     $ git clone localhost:testing
-    Clonage dans 'testing'...
+    Cloning into 'testing'...
     Enter passphrase for key '/home/greg/.ssh/id_rsa': 
-    warning: Vous semblez avoir cloné un dépôt vide.
-    Vérification de la connectivité... fait.
+    warning: warning: You appear to have cloned an empty repository.
+    Checking connectivity... done.
 
-Git nous informe qu'il s'agit d'un dépôt vide, ce qui est normal. A ce stade tout fonctionne.
+Git tells us this an empty repository, it's true so everything is fine so far.
 
-### Authentification par .htaccess
+## Updating / recreating container
 
-Il est possible de protéger l'accès à Cgit par un couple utilisateur / mot de passe. 
-Il suffit de renseigner les variables d'environnement `HTTP_AUTH_USER` et `HTTP_AUTH_PASSWORD` dans la ligne de lancement du conteneur :
+If you have deleted the exiting container or wish to update it with a newer version, just run the "Final launch" step again. The server RSA key will change but all your data are kept in Docker volume (or bindmount) .
 
-    $ docker run --name git-test -dit -v git-data:/home/git -p 8880:80 -p 2222:22 -e HTTP_AUTH_USER="my_user" -e HTTP_AUTH_PASSWORD="my_password" gitolite-cgit-cds:v21
-    
-Un couple de fichier .htaccess / .htpasswd est alors généré à la création du conteneur.
+### .htaccess authentication
 
+You may wish to protect access to the git fronted Cgit. 
 
+Just give fill up environnement variables `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` during the final launch step :
 
-### En cas de problème
-
-En cas de défaillance du conteneur, la première chose à faire est de s'y connecter et de vérifier  l'état des service `httpd` et `sshd`.
+    $ docker run --name gitolite-cgit-srv -dit -v git-data:/home/git -p 20080:80 -p 20022:22 -e HTTP_AUTH_USER="my_user" -e HTTP_AUTH_PASSWORD="my_password" gjbs84/gitolite-cgit:latest
 
 
-Pour rentrer dans le conteneur :
+### Troubleshooting
+
+If you're experimenting some issue, start with having a loog into running container. Check health of `httpd` and `sshd` daemons.
+
+To jump into the container :
 
     $ docker exec -ti git-test sh
     
-On peut vérifier que les processus `sshd` et `httpd` tournent bien :
+Then check for `sshd` and `httpd` :
 
 ```
     $ ps
@@ -154,34 +144,73 @@ On peut vérifier que les processus `sshd` et `httpd` tournent bien :
        72 daemon    0:00 httpd -DFOREGROUND
        73 daemon    0:00 httpd -DFOREGROUND
 ```
+
+## Using Gitolite and Cgit
+
+### Cgit
+
+Cgit is configured to automatically serve every repositories located into `/home/git/repositories` which is where Gitolite stores them. You basically have nothing to do to use it, just got to (adapt URL to the port number and server name) :
+
+    http(s)://myserver:20080
+
+
+### Gitolite
+
+This is not a Git/Gitolite course, but here is a very simple set of commands to quickly add a new repo to Gitolite. And a new non-admin user in the process.
+
+1. Clone the `gitolite-admin` repository : 
     
+        $ git clone myserver:gitolite-admin
 
-## Ajout des dépôts existants à Gitolite & Cgit
+2. Edit the `conf/gitolite.conf` file to add a repo :
 
-Attention, cette méthode supprime les hook d'update !
+        repo new_repo
+        RW+     =   bob
 
-1. Se connecter au conteneur
+3. Add Bob's public RSA key in `keydir/bob.pub` (of course you can use `admin` which already exists but it's not recommanded...). That's all you have to do to add a Gitolite user.
 
-2. Copier l'archive des dépôts : uniquement des bare repositories (sans copie de travail) se terminant par ".git" :
+4. Add, commit and push the updated Gitolite configuration :
 
-    $ scp greg@172.17.0.1:/opt/vm/repos/cartman-gitosis-repo.tgz /tmp/
-    
-Une manière de procéder est de créer un utilisateur temporaire dont le fichier ~/.ssh/authorized/keys contient votre clé publique puis :
+        $ git add keydir/bob.pub conf/gitolite.conf
+        $ git commit -m "Added Bob and new_repo"
+        $ git push --all
 
-    $ scp -P <port> existing-repos.tgz tmp_user@10.16.0.217:/tmp/
+5. Now just add a remote site in you local `new_repo` repository and push a local branch to it !
 
-3. Décompresser l'archive dans le répertoire des dépôts de Gitolite :
+        $ git remote add origin ssh://myserver:new_repo.git
+        $ git push origin master
+
+
+For more details, you'll have to check for official documentation of both projects !
+
+  * [Gitolite][gitolite_admin] administration
+  * [Cgit][cgit_page]
+
+
+## Add existing repositories
+
+First you must have an archive containing all you existing repositories.
+
+They have to be BARE repositories ! No working copy should exist in any of them ! 
+
+1. Jump into the container
+
+2. Copy repos archive into the container.
+
+    $ scp user@<your_host_local_ip>:/home/user/repos.tgz /tmp/
+
+3. Untar archive into Gitolite repositories directory :
 
     $ cd /home/git/repositories
-    $ tar -xf /tmp/cartman-gitosis-repo.tgz
-    $ rm /tmp/cartman-gitosis-repo.tgz
+    $ tar -xf /tmp/repos.tgz
+    $ rm /tmp/repos.tgz
 
-4. Régler les permissions :
+4. Set permissions :
 
     $ chown -R git:git *
     $ chmod -R 755 *
     
-5. Exécuter les commandes d'admin Gitolite (voir documentation pour plus de détails)
+5. From now you definitely should read [the official procedure][gitolite_existing_repo] before you go any further ! These commands come directly from there.
 
     $ su git
     $ cd
@@ -189,39 +218,31 @@ Une manière de procéder est de créer un utilisateur temporaire dont le fichie
     $ gitolite setup --hooks-only
     $ gitolite trigger POST_COMPILE
     
-6. Clôner le dépot d'administration Gitosis afin d'y modifier en conséquence le fichier `gitolite.conf` et ajouter les clés des utilisateurs dans `keydir`
+6. Clone the Gitolite admin repository or go to your local copy and update the `gitolite.conf` with your new repositories info. Don't forget to add new users public key in `keydir` if needed. 
 
-7. Commiter et pousser les changements
+7. Add/commit/push and you're done ! Check everything is fine with the `info` command. You shoud see all the repositories you have access to, which means all of them (because you have the admin key).
 
-8. Ajuster la configuration de cgit dans `/home/git/cgitrc`
+        $ ssh git@myserver info
 
-
-
-## Utilisation de Gitolite & Cgit
-
-Gitolite tout comme son ancètre Gitosis identifie les utilisateurs par la clés publique qu'ils utilisent. Ces utilisateurs n'ont donc aucun rapport avec ceux connus du système. Toutes connexions vers Gitolite se feront ainsi avec l'utilisateur `git` associé à votre clé publique.
-
-- Clonage d'un dépôt
-- Ajout d'un nouveau dépôt (Gitolite + Cgit)
-- Push/Pull
-- Gestion des utilisateurs et des permissions Gitolite
+8. Adjust Cgit configuration in `/home/git/cgitrc` if you wish, but it will work out of the box.
 
 
-## Configurer le proxy pour Git
+## Building container image
 
-En cas de besoin, ces deux commandes renseignent le fichier ~/.gitrc avec l'adresse d'un serveur proxy.
+In case you want to build you own image, clone from Github and build using the common Docker way (adjust or remove proxy settings according to your needs).
 
-    $ git config --global http.https://github.com.proxy http://10.100.4.178:3128
-    $ git config --global http.https://github.com.sslVerify false
-    
-Pour ajouter une entrée dans le fichier `~\.gitconfig`.
+    $ docker build --build-arg HTTP_PROXY=http://192.168.0.1:3128  -t <image_name> .
+
 
 ## Voir aussi
 
-* [Image de base utilisée (httpd 2.4) ](https:https://hub.docker.com/_/httpd)
-* [Exemple d'image gitolite](http://github.com/sitaramc/gitolite#adding-users-and-repos)
-* [Exemple d'image cgit](https://github.com/invokr/docker-cgit)
-* [Documentation officielle Gitolite](https://gitolite.com/gitolite/basic-admin.html)
-* [Sauvegarde et restauration d'un conteneur et de ses volumes](https://docs.docker.com/storage/volumes/#backup-a-container)
+* [Base image I used (httpd 2.4) ](https:https://hub.docker.com/_/httpd)
+* [Gitolite image](http://github.com/sitaramc/gitolite#adding-users-and-repos)
+* [Cgit image](https://github.com/invokr/docker-cgit)
+* [Gitolite Documentation](https://gitolite.com/gitolite/index.html)
 
 [docker]: https://www.docker.com/
+[gitolite_doc]: https://gitolite.com/gitolite/install.html
+[gitolite_admin]: https://gitolite.com/gitolite/basic-admin.html
+[cgit_page]: https://git.zx2c4.com/cgit/about/
+[gitolite_existing_repo]: https://gitolite.com/gitolite/basic-admin.html#appendix-1-bringing-existing-repos-into-gitolite
