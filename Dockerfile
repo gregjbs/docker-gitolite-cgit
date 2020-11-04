@@ -65,6 +65,9 @@ RUN adduser -D -g "" -s "/bin/ash" git
 # We need a password set, otherwise pubkey auth doesn't work... why ?? /sbin/nologin doesn't work either
 RUN echo "git:fhzefGG65gdoejdK$!dhd753" | chpasswd
 
+# Volume for server key
+VOLUME ["/etc/ssh"]
+
 # Volume for /home/git
 VOLUME ["/home/git"]
 
