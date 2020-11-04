@@ -6,33 +6,34 @@ WORKDIR /root
 
 ARG HTTP_PROXY
 
-# Packages 
-RUN apk update && apk add git openssh  
-RUN apk add gcc make libressl-dev 
-RUN apk add python3 py3-pygments
-RUN apk add py3-markdown
-RUN apk add linux-headers 
-RUN ln -sf /usr/include/linux/unistd.h /usr/include/
-RUN apk add musl-dev
-RUN apk add libintl musl-libintl
-RUN apk add zlib zlib-dev
-# to support untar tar.xz
-RUN apk add tar
-# Vim is cool
-RUN apk add vim
+WORKDIR /root
 
-# Clean up
-RUN rm  -rf /tmp/* /var/cache/apk/*
+# Packages we'll keep
+RUN apk update && apk add git openssh && \  
+    apk add python3 py3-pygments && \
+    apk add py3-markdown && \
+    apk add libintl musl-libintl && \
+    apk add zlib
 
 # cgit install
-WORKDIR /root
 RUN git clone git://git.zx2c4.com/cgit
 WORKDIR cgit
-RUN git submodule init 
-RUN git submodule update
-RUN make install NO_LUA=1 NO_REGEX=NeedsStartEnd
-WORKDIR ../
-RUN rm -Rf cgit
+# Packages needed for build
+RUN apk update && apk add gcc make libressl-dev  && \  
+    apk add linux-headers && \
+    ln -sf /usr/include/linux/unistd.h /usr/include/ && \
+    apk add musl-dev zlib-dev && \
+# Build
+    git submodule init && \
+    git submodule update && \
+    make install NO_LUA=1 NO_REGEX=NeedsStartEnd && \
+# Clean up
+    cd ../ && \
+    rm -Rf cgit && \
+    apk del gcc make libressl-dev && \
+    apk del linux-headers musl-dev zlib-dev && \
+    rm  -rf /tmp/* /var/cache/apk/*
+WORKDIR /root
 
 # cgit config
 ENV HTTP_AUTH_USER="", HTTP_AUTH_PASSWORD=""
@@ -44,8 +45,8 @@ RUN ln -s /home/git/cgitrc /etc/cgitrc
 
 # Gitolite install
 # Clone
-RUN git clone https://github.com/sitaramc/gitolite
-RUN gitolite/install -to /usr/local/bin/
+RUN git clone https://github.com/sitaramc/gitolite && \
+    gitolite/install -to /usr/local/bin/
 
 # Default work dir for base image httpd
 WORKDIR /usr/local/apache2
