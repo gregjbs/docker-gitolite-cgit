@@ -33,7 +33,7 @@ if [ ! -f "/home/git/.ssh/authorized_keys" ]; then
     rm "/tmp/admin.pub"
   else
     echo "You need to specify SSH_KEY on first run to setup gitolite"
-    echo 'Example: docker run --rm --name git-test -e SSH_KEY="$(cat ~/.ssh/id_rsa.pub)" -v git-data:/home/git -dit gitolite-cgit-cds:v10'
+    echo 'Example: docker run --rm -dit -v git-data:/home/git -v git-ssh:/etc/ssh -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest'
     exit 1
   fi
   echo "First launch : container is now shut down"

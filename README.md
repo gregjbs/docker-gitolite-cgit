@@ -2,6 +2,8 @@ Image docker Gitolite/cgit
 =========================
 
 This [Docker][docker] image offers a very quick way of deploying a Gitolite / Cgit server. Gitolite is a lightweight yet powerful git manager. Cgit is web-based frontend to Git repositories.
+
+Based on Alpine Linux.
   
     
     
@@ -14,13 +16,13 @@ For more details about Gitolite setup, please read the [official documentation][
 
 The container will stop by itself once the initial configuration is done. The `--rm` will make Docker remove it automatically. Only data will remain on the volume/bindmount.
 
-    $ docker run --rm -dit -v git-data:/home/git -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest
+    $ docker run --rm -dit -v git-data:/home/git -v git-ssh:/etc/ssh -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest
 
-Default behavion is to save data into an internal named volume,  `git-data` in this exemple. Of course you can change it if you wish.
+Default behavion is to save data into an internal named volume,  `git-data` and `git-ssh` in this exemple. Of course you can change it if you wish.
 
-If it's suits you better you can use a bindmount. Here an exemple with `/srv/git-data`. No existing `repositories` directory must be there !  
+If it's suits you better you can use a bindmount. Here an exemple with `/srv/git-data` and `/srv/git-ssh`. No existing `repositories` directory must be there !  
 
-    $ docker run --rm -dit -v /srv/git-data:/home/git -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest
+    $ docker run --rm -dit -v /srv/git-data:/home/git -v /srv/git-ssh:/etc/ssh -e SSH_KEY="$(cat /home/<user>/.ssh/id_rsa.pub)" gjbs84/gitolite-cgit:latest
     
     
 ### Troubleshooting
@@ -80,13 +82,13 @@ A good first startup looks like this :
 
 ## Final launch 
 
-You can now run the final container. It will use the previoulsy created volume `git-data`. Now we can give a name to this container and we have to NAT ports 22 et 80 to the host. Of course you may have to adapt the command line to your network.
+You can now run the final container. It will use the previoulsy created volumes `git-data` and `git-ssh`. Now we can give a name to this container and we have to NAT ports 22 et 80 to the host. Of course you may have to adapt the command line to your network.
 
-    $ docker run --name gitolite-cgit-srv -dit -v git-data:/home/git -p 20080:80 -p 20022:22 gjbs84/gitolite-cgit:lastest
+    $ docker run --name gitolite-cgit-srv -dit -v git-data:/home/git -v git-ssh:/etc/ssh -p 20080:80 -p 20022:22 gjbs84/gitolite-cgit:lastest
     
-If you have chosen the bindmount way (here `/srv/git-data`) :
+If you have chosen the bindmount way :
 
-    $ docker run --name gitolite-cgit-srv -dit -v /srv/git-data:/home/git -p 20080:80 -p 20022:22 gjbs84/gitolite-cgit:lastest
+    $ docker run --name gitolite-cgit-srv -dit -v /srv/git-data:/home/git -v /srv/git-ssh:/etc/ssh -p 20080:80 -p 20022:22 gjbs84/gitolite-cgit:lastest
 
 It's now time to check if everythings is right ! Let's clone the `testing` repository.
 
@@ -111,7 +113,7 @@ Git tells us this an empty repository, it's true so everything is fine so far.
 
 ## Updating / recreating container
 
-If you have deleted the exiting container or wish to update it with a newer version, just run the "Final launch" step again. The server RSA key will change but all your data are kept in Docker volume (or bindmount) .
+If you have deleted the exiting container or wish to update it with a newer version, just run the "Final launch" step again. All your data are kept in Docker volume (or bindmount) .
 
 ### .htaccess authentication
 
@@ -119,7 +121,7 @@ You may wish to protect access to the git fronted Cgit.
 
 Just give fill up environnement variables `HTTP_AUTH_USER` and `HTTP_AUTH_PASSWORD` during the final launch step :
 
-    $ docker run --name gitolite-cgit-srv -dit -v git-data:/home/git -p 20080:80 -p 20022:22 -e HTTP_AUTH_USER="my_user" -e HTTP_AUTH_PASSWORD="my_password" gjbs84/gitolite-cgit:latest
+    $ docker run --name gitolite-cgit-srv -dit -v git-data:/home/git -v git-ssh:/etc/ssh -p 20080:80 -p 20022:22 -e HTTP_AUTH_USER="my_user" -e HTTP_AUTH_PASSWORD="my_password" gjbs84/gitolite-cgit:latest
 
 
 ### Troubleshooting
